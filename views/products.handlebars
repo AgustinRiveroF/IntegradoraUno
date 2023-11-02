@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products</title>
+</head>
+
+<body>
+    <h1>Products</h1>
+
+    <div class="products-grid">
+        {{#each products}}
+        <div class="product-item" data-id="{{this._doc._id}}">
+            <h3>{{this._doc.product_name}}</h3>
+            <p>Description: {{this._doc.product_description}}</p>
+            <p>Price: ${{this._doc.product_price}}</p>
+            <p class="quantity">Quantity: {{this._doc.quantity}}</p>
+            <button class="delete-button" data-id="{{this._doc._id}}"> - </button>
+            <button class="sum-button" data-id="{{this._doc._id}}"> + </button>
+            <button class="add-to-cart" data-id="{{this._doc._id}}">Add to Cart</button>
+        </div>
+        {{/each}}
+    </div>
+
+    <button id="view-cart">View Cart</button>
+
+    <style>
+        .products-grid {
+            margin-left: 15%;
+            margin-right: 15%;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+        }
+
+        .product-item {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .delete-button,
+        .sum-button {
+            margin-top: 10px;
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const productContainer = document.querySelector(".products-grid");
+
+            productContainer.addEventListener("click", async (event) => {
+                if (event.target.classList.contains("delete-button") || event.target.classList.contains("sum-button")) {
+                    const productId = event.target.getAttribute("data-id");
+                    const isDelete = event.target.classList.contains("delete-button");
+
+                    try {
+                        const response = await fetch(`/api/carts/:cid/products/${productId}`, {
+                            method: isDelete ? "DELETE" : "PUT",
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Error: ${response.status} - ${response.statusText}`);
+                        }
+
+                        const result = await response.json();
+                        console.log(result);
+
+                        if (!isDelete) {
+                            const quantityElement = event.target.parentElement.querySelector(".quantity");
+                            quantityElement.textContent = `Quantity: ${result.quantity}`;
+                        }
+                        window.location.reload();
+
+                    } catch (error) {
+                        console.error("Error en la solicitud al servidor:", error);
+                    }
+                }
+            });
+        });
+        document.addEventListener("DOMContentLoaded", () => {
+            const addToCartButtons = document.querySelectorAll(".add-to-cart");
+
+            addToCartButtons.forEach(button => {
+                button.addEventListener("click", async () => {
+                    const productId = button.getAttribute("data-id");
+                    try {
+                        await fetch(`/api/carts/:cid/products/${productId}`, {
+                            method: "POST",
+                        });
+                        alert("Product added to cart!");
+                    } catch (error) {
+                        console.error("Error adding product to cart:", error);
+                    }
+                });
+            });
+        });
+    </script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const viewCartButton = document.getElementById("view-cart");
+
+            viewCartButton.addEventListener("click", () => {
+                window.location.href = "/carts/:cid"; //
+            });
+        });
+    </script>
+
+
+</body>
+
+</html>

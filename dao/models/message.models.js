@@ -12,6 +12,6 @@ const messageSchema = new mongoose.Schema({
     },
 });
 
-messageSchema.index({ user_email: 1, user_message: 1 }, { unique: true });
+// messageSchema.index({ user_email: 1, user_message: 1 }, { unique: true });
 
 export const messageModel = mongoose.model('messages', messageSchema);
