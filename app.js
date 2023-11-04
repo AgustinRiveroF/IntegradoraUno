@@ -19,7 +19,17 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 // Handlebars
-app.engine("handlebars", engine());
+app.engine(
+  "handlebars",
+  engine({
+    defaultLayout: 'main',
+    runtimeOptions: {
+      allowProtoPropertiesByDefault: true,
+      allowProtoMethodsByDefault: true,
+    }}) 
+);
+
+app.engine("handlebars", engine({ allowProtoMethodsByDefault: true }));
 app.set("views", __dirname + "/views");
 app.set("view engine", "handlebars");
 app.engine("handlebars", engine());

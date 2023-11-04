@@ -35,8 +35,32 @@ class ProductManager {
             const product = await productModel.findById(productId);
             return product;
         } catch (error) {
-            throw new Error(`Error fetching product by ID: ${error.message}`);
+            throw new Error(`Error product by ID: ${error.message}`);
         }
+    }
+
+    async findAllSortedAscending(options) {
+        const { limit, page, query } = options;
+        const skip = (page - 1) * limit;
+
+        const products = await productModel.find(query)
+          .skip(skip)
+          .limit(limit)
+          .sort({ product_price: 1 });
+
+        return products;
+    }
+
+    async findAllSortedDescending(options) {
+        const { limit, page, query } = options;
+        const skip = (page - 1) * limit;
+
+        const products = await productModel.find(query)
+          .skip(skip)
+          .limit(limit)
+          .sort({ product_price: -1 });
+
+        return products;
     }
 }
 

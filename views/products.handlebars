@@ -16,17 +16,20 @@
             <h3>{{this._doc.product_name}}</h3>
             <p>Description: {{this._doc.product_description}}</p>
             <p>Price: ${{this._doc.product_price}}</p>
-            <p class="quantity">Quantity: {{this._doc.quantity}}</p>
-            <button class="delete-button" data-id="{{this._doc._id}}"> - </button>
-            <button class="sum-button" data-id="{{this._doc._id}}"> + </button>
             <button class="add-to-cart" data-id="{{this._doc._id}}">Add to Cart</button>
         </div>
         {{/each}}
     </div>
 
-    <button id="view-cart">View Cart</button>
+    <button id="view-cart"><a href="/api/carts/">View Carts</a></button>
 
     <style>
+        h1 {
+            text-align: center;
+            color: rgb(65, 33, 51);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
         .products-grid {
             margin-left: 15%;
             margin-right: 15%;
@@ -41,54 +44,38 @@
             text-align: center;
         }
 
-        .delete-button,
-        .sum-button {
-            margin-top: 10px;
+        #view-cart {
+            margin-top: 10%;
+            margin-left: 50%;
         }
     </style>
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const productContainer = document.querySelector(".products-grid");
-
-            productContainer.addEventListener("click", async (event) => {
-                if (event.target.classList.contains("delete-button") || event.target.classList.contains("sum-button")) {
-                    const productId = event.target.getAttribute("data-id");
-                    const isDelete = event.target.classList.contains("delete-button");
-
-                    try {
-                        const response = await fetch(`/api/carts/:cid/products/${productId}`, {
-                            method: isDelete ? "DELETE" : "PUT",
-                        });
-
-                        if (!response.ok) {
-                            throw new Error(`Error: ${response.status} - ${response.statusText}`);
-                        }
-
-                        const result = await response.json();
-                        console.log(result);
-
-                        if (!isDelete) {
-                            const quantityElement = event.target.parentElement.querySelector(".quantity");
-                            quantityElement.textContent = `Quantity: ${result.quantity}`;
-                        }
-                        window.location.reload();
-
-                    } catch (error) {
-                        console.error("Error en la solicitud al servidor:", error);
-                    }
-                }
-            });
-        });
         document.addEventListener("DOMContentLoaded", () => {
             const addToCartButtons = document.querySelectorAll(".add-to-cart");
 
             addToCartButtons.forEach(button => {
                 button.addEventListener("click", async () => {
                     const productId = button.getAttribute("data-id");
+
                     try {
-                        await fetch(`/api/carts/:cid/products/${productId}`, {
+                        const createCartResponse = await fetch(`/api/carts`, {
                             method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({})
                         });
+
+                        const { cartId } = await createCartResponse.json();
+
+                        await fetch(`/api/carts/${cartId}/add-product`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({ productId, quantity: 1 })
+                        });
+
                         alert("Product added to cart!");
                     } catch (error) {
                         console.error("Error adding product to cart:", error);
@@ -101,12 +88,28 @@
         document.addEventListener("DOMContentLoaded", () => {
             const viewCartButton = document.getElementById("view-cart");
 
-            viewCartButton.addEventListener("click", () => {
-                window.location.href = "/carts/:cid"; //
+            viewCartButton.addEventListener("click", async () => {
+                try {
+                    const createCartResponse = await fetch(`/api/carts`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({})
+                    });
+
+                    const { cartId } = await createCartResponse.json();
+                    if (cartId) {
+                        window.location.href = `/api/carts/populated/${cartId}`;
+                    } else {
+                        console.error("Error creating cart: Cart ID not received");
+                    }
+                } catch (error) {
+                    console.error("Error creating cart:", error);
+                }
             });
         });
     </script>
-
 
 </body>
 

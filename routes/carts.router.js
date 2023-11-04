@@ -1,21 +1,39 @@
 import { Router } from "express";
+import { cartsManager } from "../dao/managersDB/CartsManagers.js"; 
 import { cartsModel } from "../dao/models/cart.models.js";
-import { cartsManager } from "../dao/managersFS/CartsManagers.js"; 
+import { productModel } from "../dao/models/product.model.js";
 
 const router = Router();
 
 // -------------------------------------- GET ------------------------------------------
 
-router.get("/notpopulated/:cid", async (req, res) => {
+router.get("/populated/:cid", async (req, res) => {
   try {
     const { cid } = req.params;
-    const cart = await cartsManager.findCartById(cid);
+    const cart = await cartsModel
+      .findById(cid)
+      .populate({
+        path: "products.product",
+        model: "Product",
+        select: "product_name product_description product_price",
+      });
 
     if (!cart) {
       return res.status(404).json({ status: "error", message: "Cart not found" });
     }
 
-    res.render("carts", { cart });
+    const cartWithStrings = JSON.parse(JSON.stringify(cart));
+    cartWithStrings._id = cart._id.toString();
+    cartWithStrings.products = cart.products.map(product => ({
+      ...JSON.parse(JSON.stringify(product)),
+      _id: product._id.toString(),
+      product: {
+        ...JSON.parse(JSON.stringify(product.product)),
+        _id: product.product._id.toString(),
+      },
+    }));
+    
+    res.render("cartsPopulated", { cart: cartWithStrings });
   } catch (error) {
     res.status(500).json({ status: "error", message: error.message });
   }
@@ -30,28 +48,16 @@ router.get("/:idCart", async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const carts = await cartsManager.getAllCarts();
-    res.json({ status: 'success', carts });
+
+    const cartsAsObjects = carts.map(cart => ({
+      ...cart.toObject(),
+      _id: cart._id.toString(), // Convierte el ObjectId a cadena
+    }));
+
+    res.render('carts', { carts: cartsAsObjects });    
   } catch (error) {
     console.error('Error getting carts:', error);
     res.status(500).json({ status: 'error', message: 'Internal Server Error' });
-  }
-});
-
-router.get("/populated/:cid", async (req, res) => {
-  try {
-    const { cid } = req.params;
-    const cart = await cartsModel.findById(cid).populate({
-      path: "products.product",
-      model: "Product",
-    });
-
-    if (!cart) {
-      return res.status(404).json({ status: "error", message: "Cart not found" });
-    }
-
-    res.render("carts", { cart });
-  } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
   }
 });
 
@@ -70,7 +76,7 @@ router.post("/:cid/products/:pid", async (req, res) => {
       const cart = await cartsModel.findById(cid);
 
       // Busca el producto por ID
-      const product = await productsModel.findById(pid);
+      const product = await productModel.findById(pid); 
 
       if (!cart || !product) {
           return res.status(404).json({ status: "error", message: "Cart or product not found" });
@@ -88,6 +94,30 @@ router.post("/:cid/products/:pid", async (req, res) => {
   }
 });
 
+
+router.post('/:cid/add-product', async (req, res) => {
+  try {
+    const { cid } = req.params;
+    const { productId, quantity } = req.body;
+
+    const cart = await cartsModel.findById(cid);
+    if (!cart) {
+      return res.status(404).json({ status: 'error', message: 'Carrito no encontrado' });
+    }
+
+    const product = await productModel.findById(productId);
+    if (!product) {
+      return res.status(404).json({ status: 'error', message: 'Producto no encontrado' });
+    }
+
+    cart.products.push({ product: product._id, quantity });
+    await cart.save();
+
+    res.status(200).json({ status: 'success', message: 'Product added to cart', cartId: cart._id });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
 
 //------------------------------------- PUT ----------------------------------------
 
@@ -114,7 +144,6 @@ router.put("/:cid/products/:pid", async (req, res) => {
       res.status(500).json({ status: "error", message: error.message });
   }
 });
-
 
 // ---------------------------------------- DELETE ----------------------------------- 
 

@@ -16,7 +16,6 @@ class CartsManager {
     }
   }
 
-
   async addProductToCart(idCart, idProduct) {
     const cart = await cartsModel.findById(idCart);
 
@@ -80,9 +79,7 @@ class CartsManager {
       throw error;
     }
   }
-
-
-
+  
   async updateCart(cartId, products) {
     try {
       const cart = await cartsModel.findById(cartId);

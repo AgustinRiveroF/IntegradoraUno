@@ -5,16 +5,19 @@ const cartsSchema = new mongoose.Schema({
     {
       product: {
         type: mongoose.SchemaTypes.ObjectId,
-        ref: "Products",
+        ref: "Product",
       },
       quantity: {
         type: Number,
       },
-      _id: false,
     },
   ],
 });
 
-export const cartsModel = mongoose.model("Carts", cartsSchema);
 
+cartsSchema.methods.populateProducts = async function () {
+  await this.populate("products.product").execPopulate();
+};
+
+export const cartsModel = mongoose.model("Carts", cartsSchema);
 
